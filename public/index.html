@@ -154,7 +154,7 @@
         const logElement = this.#element.querySelector('.experiment-box__log');
         const now = Date.now();
 
-        this.#logSeparatorTimeout = setTimeout(() => this.#addTextContent('---'), SEPARATOR_AFTER_MS);
+        this.#logSeparatorTimeout = setTimeout(() => this.#addTextContent('---'), LOG_SEPARATOR_AFTER_MS);
 
         const lines = messages.map(message => '' + message);
         const timestamp = new Date().toLocaleTimeString();
