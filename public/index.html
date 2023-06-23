@@ -120,6 +120,7 @@
     'use strict';
 
     const LOG_SEPARATOR_AFTER_MS = 500;
+    const STICKINESS_TOLERANCE = 5;
 
     function blobToArrayBuffer(blob) {
       return new Promise((resolve, reject) => {
@@ -165,7 +166,7 @@
 
       #addTextContent(textContent) {
         const logElement = this.#element.querySelector('.experiment-box__log');
-        const sticky = logElement.scrollTop >= logElement.scrollHeight - logElement.clientHeight - 1;
+        const sticky = logElement.scrollTop >= logElement.scrollHeight - logElement.clientHeight - STICKINESS_TOLERANCE;
 
         logElement.textContent += textContent + '\n';
 
