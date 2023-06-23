@@ -35,6 +35,8 @@ app.get('/api/sse', (_, res) => {
     console.log('/api/sse closed');
     clearInterval(interval);
   });
+
+  res.write('data: welcome\n\n');
 });
 app.use(express.static(resolve(fileURLToPath(import.meta.url), '../../public/')));
 
@@ -55,6 +57,8 @@ wss.on('connection', ws => {
 
   ws.on('close', () => clearInterval(interval));
   ws.on('message', data => ws.send(`got ${data.byteLength} bytes`));
+
+  ws.send(Buffer.from('greeting'));
 });
 
 server.listen(PORT, () => console.log(`Listening to http://localhost:${PORT}/.`));
