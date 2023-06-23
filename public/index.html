@@ -49,20 +49,21 @@
         padding: 0 10px;
       }
 
-      .experiment-box__floatie {
+      .experiment-box__command-bar {
         display: flex;
         gap: 10px;
-        position: absolute;
-        right: 10px;
-        top: 10px;
+        margin: 0 10px 10px;
       }
 
       .experiment-box__status {
         background-color: red;
         border-radius: 7px;
         height: 14px;
-        outline: solid 2px white;
         outline-offset: -3px;
+        outline: solid 2px white;
+        position: absolute;
+        right: 10px;
+        top: 10px;
         width: 14px;
       }
 
@@ -83,37 +84,33 @@
         <h4 class="experiment-box__title">
           Web Socket
           <div class="experiment-box__floatie">
-            <button class="experiment-box__web-socket-reconnect" type="button">Reconnect</button>
-            <button class="experiment-box__web-socket-ping" type="button">Ping</button>
             <div class="experiment-box__status"></div>
           </div>
         </h4>
         <pre class="experiment-box__log"></pre>
+        <div class="experiment-box__command-bar">
+          <button class="experiment-box__web-socket-reconnect" type="button">Reconnect</button>
+          <button class="experiment-box__web-socket-ping" type="button">Ping</button>
+        </div>
       </div>
       <div class="experiment-box experiment-box--server-sent-events">
         <h4 class="experiment-box__title">
           Server Sent Events
-          <div class="experiment-box__floatie">
-            <div class="experiment-box__status"></div>
-          </div>
+          <div class="experiment-box__status"></div>
         </h4>
         <pre class="experiment-box__log"></pre>
       </div>
       <div class="experiment-box experiment-box--long-polling">
         <h4 class="experiment-box__title">
           Long-polling
-          <div class="experiment-box__floatie">
-            <div class="experiment-box__status"></div>
-          </div>
+          <div class="experiment-box__status"></div>
         </h4>
         <pre class="experiment-box__log"></pre>
       </div>
       <div class="experiment-box experiment-box--window-events">
         <h4 class="experiment-box__title">
           Window events
-          <div class="experiment-box__floatie">
-            <div class="experiment-box__status"></div>
-          </div>
+          <div class="experiment-box__status"></div>
         </h4>
         <pre class="experiment-box__log"></pre>
       </div>
