@@ -3,8 +3,349 @@
   <head>
     <meta name="viewport" content="width=device-width" />
     <title>experiment-network-change</title>
+    <style type="text/css">
+      body,
+      html,
+      main {
+        height: 100%;
+      }
+
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
+          'Open Sans', 'Helvetica Neue', sans-serif;
+        margin: 0;
+      }
+
+      main {
+        box-sizing: border-box;
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        padding: 10px;
+      }
+
+      .experiment-box {
+        border: solid 1px #ccc;
+        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .experiment-box__title {
+        margin: 5px 10px;
+      }
+
+      .experiment-box__log {
+        flex: 1;
+        font-size: x-small;
+        margin: 0;
+        overflow-x: auto;
+        overflow-y: scroll;
+        padding: 0 10px;
+      }
+
+      .experiment-box__floatie {
+        display: flex;
+        gap: 10px;
+        position: absolute;
+        right: 10px;
+        top: 10px;
+      }
+
+      .experiment-box__status {
+        background-color: red;
+        border-radius: 7px;
+        height: 14px;
+        outline: solid 2px white;
+        outline-offset: -3px;
+        width: 14px;
+      }
+
+      .experiment-box--connected .experiment-box__status {
+        background-color: green;
+      }
+
+      .experiment-box__web-socket-ping,
+      .experiment-box__web-socket-reconnect {
+        font-family: inherit;
+        font-size: xx-small;
+      }
+    </style>
   </head>
   <body>
-    <h1>Hello, World!</h1>
+    <main>
+      <div class="experiment-box experiment-box--web-socket">
+        <h4 class="experiment-box__title">
+          Web Socket
+          <div class="experiment-box__floatie">
+            <button class="experiment-box__web-socket-reconnect" type="button">Reconnect</button>
+            <button class="experiment-box__web-socket-ping" type="button">Ping</button>
+            <div class="experiment-box__status"></div>
+          </div>
+        </h4>
+        <pre class="experiment-box__log"></pre>
+      </div>
+      <div class="experiment-box experiment-box--server-sent-events">
+        <h4 class="experiment-box__title">
+          Server Sent Events
+          <div class="experiment-box__floatie">
+            <div class="experiment-box__status"></div>
+          </div>
+        </h4>
+        <pre class="experiment-box__log"></pre>
+      </div>
+      <div class="experiment-box experiment-box--long-polling">
+        <h4 class="experiment-box__title">
+          Long-polling
+          <div class="experiment-box__floatie">
+            <div class="experiment-box__status"></div>
+          </div>
+        </h4>
+        <pre class="experiment-box__log"></pre>
+      </div>
+      <div class="experiment-box experiment-box--window-events">
+        <h4 class="experiment-box__title">
+          Window events
+          <div class="experiment-box__floatie">
+            <div class="experiment-box__status"></div>
+          </div>
+        </h4>
+        <pre class="experiment-box__log"></pre>
+      </div>
+    </main>
   </body>
+  <script>
+    'use strict';
+
+    function blobToArrayBuffer(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.addEventListener('error', reject);
+        reader.addEventListener('load', () => resolve(reader.result), { once: true });
+
+        reader.readAsArrayBuffer(blob);
+      });
+    }
+
+    function sleep(durationInMS = 100) {
+      return new Promise(resolve => setTimeout(resolve, durationInMS));
+    }
+
+    class Experiment {
+      constructor(element) {
+        this.#element = element;
+      }
+
+      #element;
+      #lastLog = 0;
+      #logSeparatorTimeout;
+
+      log(...messages) {
+        clearTimeout(this.#logSeparatorTimeout);
+
+        const logElement = this.#element.querySelector('.experiment-box__log');
+        const now = Date.now();
+
+        this.#logSeparatorTimeout = setTimeout(() => this.#addTextContent('---'), 1500);
+
+        const lines = messages.map(message => '' + message);
+        const timestamp = new Date().toLocaleTimeString();
+
+        const padding = new Array(timestamp.length).fill(' ').join('');
+
+        this.#addTextContent(lines.map((line, index) => `${index ? padding : timestamp} | ${line}`).join('\n'));
+
+        this.#lastLog = now;
+      }
+
+      #addTextContent(textContent) {
+        const logElement = this.#element.querySelector('.experiment-box__log');
+
+        logElement.textContent += textContent + '\n';
+
+        logElement.scrollTop = logElement.scrollHeight - logElement.clientHeight;
+      }
+
+      setOffline() {
+        this.#element.classList.remove('experiment-box--connected');
+      }
+
+      setOnline() {
+        this.#element.classList.add('experiment-box--connected');
+      }
+    }
+
+    class WebSocketExperiment extends Experiment {
+      constructor() {
+        super(document.getElementsByClassName('experiment-box--web-socket')[0]);
+
+        this.#reconnectButton = document.getElementsByClassName('experiment-box__web-socket-reconnect')[0];
+
+        this.#reconnectButton.addEventListener('click', () => {
+          this.log('Reconnect button clicked.');
+
+          this.#connect();
+        });
+
+        document.getElementsByClassName('experiment-box__web-socket-ping')[0].addEventListener('click', () => {
+          this.log('Ping button clicked.');
+
+          this.#webSocket.send('Hello.');
+        });
+
+        this.#connect();
+      }
+
+      #reconnectButton;
+      #webSocket;
+
+      #connect() {
+        this.#reconnectButton.setAttribute('disabled', 'disabled');
+        this.#webSocket?.close();
+
+        const url = new URL(location.href);
+
+        url.pathname = '/api/ws';
+        url.protocol = url.protocol === 'http:' ? 'ws:' : 'wss:';
+
+        this.#webSocket = new WebSocket(url);
+
+        this.#webSocket.addEventListener('close', () => {
+          this.log('Disconnected, got "close" event.');
+
+          this.setOffline();
+          this.#reconnectButton.removeAttribute('disabled');
+        });
+
+        this.#webSocket.addEventListener('error', () => {
+          this.log('Got "error" event.');
+        });
+
+        this.#webSocket.addEventListener('message', async ({ data }) => {
+          const decoder = new TextDecoder();
+
+          if (data instanceof Blob) {
+            this.log('Got "message" event', JSON.stringify(decoder.decode(await blobToArrayBuffer(data))));
+          } else {
+            this.log('Got "message" event', JSON.stringify(data));
+          }
+        });
+
+        this.#webSocket.addEventListener('open', () => {
+          this.log('Connected, got "open" event.');
+          this.setOnline();
+        });
+      }
+    }
+
+    class ServerSentEventsExperiment extends Experiment {
+      constructor() {
+        super(document.getElementsByClassName('experiment-box--server-sent-events')[0]);
+
+        this.#eventSource = new EventSource(new URL('/api/sse', location.href));
+
+        this.#eventSource.addEventListener('error', ({ error }) => {
+          this.log('Got "error" event', error.message);
+        });
+
+        this.#eventSource.addEventListener('message', async ({ data }) => {
+          this.log('Got "message" event', JSON.stringify(data));
+        });
+
+        this.#eventSource.addEventListener('open', () => {
+          this.log('Connected, got "open" event.');
+          this.setOnline();
+        });
+      }
+
+      #eventSource;
+    }
+
+    class LongPollingExperiment extends Experiment {
+      constructor() {
+        super(document.getElementsByClassName('experiment-box--long-polling')[0]);
+
+        this.connect();
+      }
+
+      async connect() {
+        let failed;
+
+        for (;;) {
+          if (failed) {
+            await sleep(2000);
+            failed = false;
+          }
+
+          let res;
+
+          try {
+            res = await fetch(new URL('/api/poll', location.href));
+          } catch (error) {
+            this.log('Failed to connect.', error.message);
+            failed = true;
+
+            continue;
+          }
+
+          this.log('Connected.');
+          this.setOnline();
+
+          try {
+            const text = await res.text();
+
+            this.log(`Got response.`, JSON.stringify(text));
+          } catch (error) {
+            this.log('Fail to get response.', error.message);
+            failed = true;
+
+            continue;
+          }
+        }
+      }
+    }
+
+    class WindowEventsExperiment extends Experiment {
+      constructor() {
+        super(document.getElementsByClassName('experiment-box--window-events')[0]);
+
+        navigator.onLine && this.setOnline();
+
+        addEventListener('error', ({ error }) => this.log('Got "error" event.', error?.message));
+        addEventListener('offline', () => this.log('Got "offline" event.'));
+        addEventListener('online', () => this.log('Got "online" event.'));
+        addEventListener('visibilitychange', () =>
+          this.log('Got "visibilitychange" event.', JSON.stringify(document.visibilityState))
+        );
+
+        navigator.connection?.addEventListener('change', () =>
+          this.log(
+            'Got "NetworkInformation.change" event.',
+            `- type: ${navigator.connection?.type}`,
+            `- effectiveType: ${navigator.connection?.effectiveType}`
+          )
+        );
+
+        if (navigator.connection) {
+          this.log(
+            'Initial NetworkInformation API.',
+            `- type: ${navigator.connection.type}`,
+            `- effectiveType: ${navigator.connection.effectiveType}`
+          );
+        } else {
+          this.log('NetworkInformation API is not supported.');
+        }
+      }
+    }
+
+    const longPollingExperiment = new LongPollingExperiment();
+    const serverSentEvents = new ServerSentEventsExperiment();
+    const webSocketExperiment = new WebSocketExperiment();
+    const windowEventsExperiment = new WindowEventsExperiment();
+  </script>
 </html>
