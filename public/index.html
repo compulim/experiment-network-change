@@ -51,6 +51,7 @@
 
       .experiment-box__command-bar {
         display: flex;
+        justify-content: space-between;
         gap: 10px;
         margin: 0 10px 10px;
       }
@@ -93,8 +94,8 @@
         </h4>
         <pre class="experiment-box__log"></pre>
         <div class="experiment-box__command-bar">
-          <button class="experiment-box__web-socket-reconnect" type="button">Reconnect</button>
           <button class="experiment-box__web-socket-ping" type="button">Ping</button>
+          <button class="experiment-box__web-socket-reconnect" type="button">Reconnect</button>
         </div>
       </div>
       <div class="experiment-box experiment-box--server-sent-events">
@@ -287,6 +288,7 @@
 
         this.#eventSource.addEventListener('error', ({ error }) => {
           this.log('Got "error" event', JSON.stringify(error?.message));
+          this.setOffline();
         });
 
         this.#eventSource.addEventListener('message', async ({ data }) => {
@@ -329,6 +331,7 @@
             res = await fetch(url);
           } catch (error) {
             this.log('Failed to connect.', JSON.stringify(error?.message));
+            this.setOffline();
             failed = true;
 
             continue;
@@ -343,6 +346,7 @@
             this.log(`Got response.`, JSON.stringify(text));
           } catch (error) {
             this.log('Fail to get response.', JSON.stringify(error?.message));
+            this.setOffline();
             failed = true;
 
             continue;
