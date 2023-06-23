@@ -284,7 +284,9 @@
 
         for (;;) {
           if (failed) {
+            this.log('Sleep 2 seconds before retrying.');
             await sleep(2000);
+
             failed = false;
           }
 
