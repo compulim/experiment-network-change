@@ -196,6 +196,12 @@
           this.#connect();
         });
 
+        this.#reconnectButton.addEventListener('copy', () => {
+          this.log('Force reconnect.');
+
+          this.#connect();
+        });
+
         document.getElementsByClassName('experiment-box__web-socket-ping')[0].addEventListener('click', () => {
           if (this.#webSocket?.readyState === 1) {
             this.log('Ping button clicked.');
