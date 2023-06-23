@@ -71,6 +71,10 @@
         background-color: green;
       }
 
+      .experiment-box--connected.experiment-box--just-connected .experiment-box__status {
+        background-color: goldenrod;
+      }
+
       .experiment-box__web-socket-ping,
       .experiment-box__web-socket-reconnect {
         font-family: inherit;
@@ -119,6 +123,7 @@
   <script>
     'use strict';
 
+    const CONNECTION_STABLE_DURATION = 10000;
     const LOG_SEPARATOR_AFTER_MS = 500;
     const STICKINESS_TOLERANCE = 5;
 
@@ -145,6 +150,7 @@
       #element;
       #lastLog = 0;
       #logSeparatorTimeout;
+      #removeJustConnectedClassTimeout;
 
       log(...messages) {
         clearTimeout(this.#logSeparatorTimeout);
@@ -180,7 +186,21 @@
       }
 
       setOnline() {
-        this.#element.classList.add('experiment-box--connected');
+        const { classList } = this.#element;
+
+        if (classList.contains('experiment-box--connected')) {
+          return;
+        }
+
+        classList.add('experiment-box--connected');
+        classList.add('experiment-box--just-connected');
+
+        clearTimeout(this.#removeJustConnectedClassTimeout);
+
+        this.#removeJustConnectedClassTimeout = setTimeout(
+          () => classList.remove('experiment-box--just-connected'),
+          CONNECTION_STABLE_DURATION
+        );
       }
     }
 
