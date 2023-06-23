@@ -16,7 +16,7 @@ app.get('/api/poll', (_, res) => {
 
   res.status(200);
   res.setHeader('cache-control', 'no-transform');
-  res.write('');
+  res.write(' '); // iOS: Need to send at least 1 byte of data, otherwise, it won't signal as connected.
 
   const timeout = setTimeout(() => res.end(), 30000);
 

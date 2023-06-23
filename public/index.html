@@ -8,6 +8,7 @@
       html,
       main {
         height: 100%;
+        overflow: hidden;
       }
 
       body {
@@ -193,9 +194,13 @@
         });
 
         document.getElementsByClassName('experiment-box__web-socket-ping')[0].addEventListener('click', () => {
-          this.log('Ping button clicked.');
+          if (this.#webSocket?.readyState === 1) {
+            this.log('Ping button clicked.');
 
-          this.#webSocket.send('Hello.');
+            this.#webSocket.send('Hello.');
+          } else {
+            this.log('Not connected, cannot ping.');
+          }
         });
 
         this.#connect();
@@ -214,6 +219,8 @@
         url.protocol = url.protocol === 'http:' ? 'ws:' : 'wss:';
 
         this.#webSocket = new WebSocket(url);
+
+        this.log(`Connecting to ${url}.`);
 
         this.#webSocket.addEventListener('close', () => {
           this.log('Disconnected, got "close" event.');
@@ -283,9 +290,12 @@
           }
 
           let res;
+          const url = new URL('/api/poll', location.href);
+
+          this.log(`Connecting to ${url}.`);
 
           try {
-            res = await fetch(new URL('/api/poll', location.href));
+            res = await fetch(url);
           } catch (error) {
             this.log('Failed to connect.', JSON.stringify(error?.message));
             failed = true;
