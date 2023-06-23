@@ -12,8 +12,10 @@ const wss = new WebSocketServer({ noServer: true });
 
 app.get('/health.txt', (_, res) => res.send('OK'));
 app.get('/api/poll', (_, res) => {
+  res.chunkedEncoding = true;
+
   res.status(200);
-  res.setHeader('transfer-encoding', 'chunked');
+  res.setHeader('cache-control', 'no-transform');
   res.write('');
 
   const timeout = setTimeout(() => res.end(), 30000);
