@@ -6,7 +6,7 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "start": "node ."
+    "start": "if [ -z \"${WEBSITE_SITE_NAME}\" ]; then node-dev .; else node .; fi"
   },
   "author": "",
   "license": "MIT",

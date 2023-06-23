@@ -12,6 +12,4 @@ app.get('/health.txt', (_, res) => res.send('OK'));
 
 app.use(express.static(resolve(fileURLToPath(import.meta.url), '../../public/')));
 
-server.listen(PORT, () => {
-  console.log(`Listening to http://localhost:${PORT}/`);
-});
+server.listen(PORT, () => console.log(`Listening to http://localhost:${PORT}/.`));
