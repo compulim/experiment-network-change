@@ -62,8 +62,8 @@
         outline-offset: -3px;
         outline: solid 2px white;
         position: absolute;
-        right: 10px;
-        top: 10px;
+        right: 8px;
+        top: 8px;
         width: 14px;
       }
 
@@ -165,10 +165,13 @@
 
       #addTextContent(textContent) {
         const logElement = this.#element.querySelector('.experiment-box__log');
+        const sticky = logElement.scrollTop >= logElement.scrollHeight - logElement.clientHeight - 1;
 
         logElement.textContent += textContent + '\n';
 
-        logElement.scrollTop = logElement.scrollHeight - logElement.clientHeight;
+        if (sticky) {
+          logElement.scrollTop = logElement.scrollHeight - logElement.clientHeight;
+        }
       }
 
       setOffline() {
@@ -256,7 +259,7 @@
         this.#eventSource = new EventSource(new URL('/api/sse', location.href));
 
         this.#eventSource.addEventListener('error', ({ error }) => {
-          this.log('Got "error" event', error.message);
+          this.log('Got "error" event', JSON.stringify(error?.message));
         });
 
         this.#eventSource.addEventListener('message', async ({ data }) => {
