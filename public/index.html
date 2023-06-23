@@ -122,6 +122,8 @@
   <script>
     'use strict';
 
+    const LOG_SEPARATOR_AFTER_MS = 500;
+
     function blobToArrayBuffer(blob) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -152,7 +154,7 @@
         const logElement = this.#element.querySelector('.experiment-box__log');
         const now = Date.now();
 
-        this.#logSeparatorTimeout = setTimeout(() => this.#addTextContent('---'), 1500);
+        this.#logSeparatorTimeout = setTimeout(() => this.#addTextContent('---'), SEPARATOR_AFTER_MS);
 
         const lines = messages.map(message => '' + message);
         const timestamp = new Date().toLocaleTimeString();
