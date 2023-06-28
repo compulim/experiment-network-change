@@ -10,11 +10,14 @@ const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
+const CORS_ALLOWED_UNTIL = new Date('2023-07-31');
+
 app.get('/health.txt', (_, res) => res.send('OK'));
 app.get('/api/poll', (_, res) => {
   res.chunkedEncoding = true;
 
   res.status(200);
+  new Date() < CORS_ALLOWED_UNTIL && res.setHeader('access-control-allow-origin', '*');
   res.setHeader('cache-control', 'no-transform');
   res.write(' '); // iOS: Need to send at least 1 byte of data, otherwise, it won't signal as connected.
 
@@ -27,6 +30,7 @@ app.get('/api/poll', (_, res) => {
 });
 app.get('/api/sse', (_, res) => {
   res.status(200);
+  new Date() < CORS_ALLOWED_UNTIL && res.setHeader('access-control-allow-origin', '*');
   res.setHeader('content-type', 'text/event-stream');
 
   const interval = setInterval(() => res.write(`data: ping at ${new Date().toLocaleTimeString()}\n\n`), 2000);
