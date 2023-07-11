@@ -1,8 +1,13 @@
+import 'dotenv/config';
+
 import { createServer } from 'http';
 import { fileURLToPath } from 'url';
 import { resolve } from 'path';
 import { WebSocketServer } from 'ws';
 import express from 'express';
+import { createServer as createSocketServer } from 'net';
+
+import generateServiceBusSharedAccessSignatureToken from './generateServiceBusSharedAccessSignatureToken.js';
 
 const { PORT = 80 } = process.env;
 
@@ -12,16 +17,22 @@ const wss = new WebSocketServer({ noServer: true });
 
 const CORS_ALLOWED_UNTIL = new Date('2023-07-31');
 
-app.get('/health.txt', (_, res) => res.send('OK'));
-app.get('/api/poll', (_, res) => {
-  res.chunkedEncoding = true;
+app.set('query parser', 'simple');
 
+app.get('/health.txt', (_, res) => res.send('OK'));
+app.use('/api/poll', (req, res) => {
+  const timeoutParam = parseInt(req.query.timeout, 10);
+
+  res.chunkedEncoding = true;
   res.status(200);
   new Date() < CORS_ALLOWED_UNTIL && res.setHeader('access-control-allow-origin', '*');
-  res.setHeader('cache-control', 'no-transform');
+  res.setHeader('cache-control', 'no-store');
   res.write(' '); // iOS: Need to send at least 1 byte of data, otherwise, it won't signal as connected.
 
-  const timeout = setTimeout(() => res.end(), 30000);
+  const timeout = setTimeout(
+    () => res.end(),
+    isNaN(timeoutParam) ? 30_000 : Math.max(0, Math.min(120_000, timeoutParam))
+  );
 
   res.on('close', () => {
     console.log('/api/poll closed prematurely');
@@ -41,6 +52,23 @@ app.get('/api/sse', (_, res) => {
   });
 
   res.write('data: welcome\n\n');
+});
+app.get('/api/servicebustoken', (_, res) => {
+  // https://learn.microsoft.com/en-us/rest/api/servicebus/receive-and-delete-message-destructive-read
+  const url = new URL(
+    `https://${process.env.SERVICE_BUS_NAMESPACE}.servicebus.windows.net/${process.env.SERVICE_BUS_ENTITY_PATH}/messages/head?timeout=30`
+  );
+
+  const token = generateServiceBusSharedAccessSignatureToken(
+    url.href,
+    process.env.SERVICE_BUS_SHARED_ACCESS_KEY_NAME,
+    process.env.SERVICE_BUS_SHARED_ACCESS_KEY
+  );
+
+  res.json({
+    token,
+    url
+  });
 });
 app.use(express.static(resolve(fileURLToPath(import.meta.url), '../../public/')));
 
@@ -66,3 +94,9 @@ wss.on('connection', ws => {
 });
 
 server.listen(PORT, () => console.log(`Listening to http://localhost:${PORT}/.`));
+
+createSocketServer(() => {
+  console.log('New socket connection.');
+}).listen(5002, () => {
+  console.log('Socket server opened on port 5002.');
+});

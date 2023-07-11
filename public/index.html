@@ -22,6 +22,7 @@
         display: grid;
         gap: 10px;
         grid-template-columns: 1fr 1fr;
+        /* grid-template-rows: 1fr 1fr 1fr; */
         grid-template-rows: 1fr 1fr;
         padding: 10px;
       }
@@ -112,6 +113,13 @@
         </h4>
         <pre class="experiment-box__log"></pre>
       </div>
+      <!-- <div class="experiment-box experiment-box--service-bus">
+        <h4 class="experiment-box__title">
+          Azure Service Bus
+          <div class="experiment-box__status"></div>
+        </h4>
+        <pre class="experiment-box__log"></pre>
+      </div> -->
       <div class="experiment-box experiment-box--window-events">
         <h4 class="experiment-box__title">
           Window events
@@ -328,7 +336,7 @@
           this.log(`Connecting to ${url}.`);
 
           try {
-            res = await fetch(url);
+            res = await fetch(url, { cache: 'no-cache', credentials: 'omit', method: 'PUT' });
           } catch (error) {
             this.log('Failed to connect.', JSON.stringify(error?.message));
             this.setOffline();
@@ -355,6 +363,112 @@
       }
     }
 
+    class ServiceBusExperiment extends Experiment {
+      constructor() {
+        super(document.getElementsByClassName('experiment-box--service-bus')[0]);
+
+        this.connect();
+      }
+
+      async connect() {
+        let failed;
+
+        for (;;) {
+          if (failed) {
+            this.log('Sleep 2 seconds before retrying.');
+            await sleep(2000);
+
+            failed = false;
+          }
+
+          let res;
+          const fetchTokenURL = new URL('/api/servicebustoken', location.href);
+
+          this.log(`Fetching token from ${fetchTokenURL}.`);
+
+          try {
+            res = await fetch(fetchTokenURL);
+          } catch (error) {
+            this.log('Failed to fetch token.', JSON.stringify(error?.message));
+            this.setOffline();
+            failed = true;
+
+            continue;
+          }
+
+          const { token, url } = await res.json();
+
+          this.log('Got token.');
+          this.log(`Connecting to ${url}.`);
+
+          try {
+            await new Promise((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
+
+              xhr.addEventListener('loadstart', () => {
+                this.log('LOADSTART', xhr.readyState, xhr.status);
+                this.setOnline();
+              });
+
+              xhr.addEventListener('progress', () => {
+                this.log('PROGRESS', xhr.readyState, xhr.status);
+              });
+
+              xhr.addEventListener('readystatechange', () => {
+                this.log('READYSTATECHANGE', xhr.readyState, xhr.status);
+              });
+
+              xhr.addEventListener('load', () => {
+                this.log('LOAD', xhr.readyState, xhr.status);
+                resolve();
+              });
+
+              xhr.addEventListener('error', () => {
+                this.log('ERROR', xhr.readyState);
+                reject();
+              });
+
+              // xhr.open('DELETE', url);
+              xhr.open('PUT', 'http://localhost:5001/api/poll');
+              xhr.setRequestHeader('Authorization', token);
+
+              this.log('OPENING', xhr.readyState);
+
+              xhr.send(' ');
+            });
+
+            // res = await fetch(url, {
+            //   cache: 'no-cache',
+            //   credentials: 'omit',
+            //   headers: { authorization: token },
+            //   method: 'DELETE'
+            // });
+          } catch (error) {
+            this.log('Failed to connect to Service Bus.', JSON.stringify(error?.message));
+            this.setOffline();
+            failed = true;
+
+            continue;
+          }
+
+          // this.log(`Connected with ${res.status}.`);
+          // this.setOnline();
+
+          // try {
+          //   const text = await res.text();
+
+          //   this.log(`Got message.`, JSON.stringify(text));
+          // } catch (error) {
+          //   this.log('Fail to get message.', JSON.stringify(error?.message));
+          //   this.setOffline();
+          //   failed = true;
+
+          //   continue;
+          // }
+        }
+      }
+    }
+
     class WindowEventsExperiment extends Experiment {
       constructor() {
         super(document.getElementsByClassName('experiment-box--window-events')[0]);
@@ -372,7 +486,8 @@
           this.log(
             'Got "NetworkInformation.change" event.',
             `- type: ${navigator.connection?.type}`,
-            `- effectiveType: ${navigator.connection?.effectiveType}`
+            `- effectiveType: ${navigator.connection?.effectiveType}`,
+            `- downlink: ${navigator.connection.downlink}`
           )
         );
 
@@ -380,7 +495,8 @@
           this.log(
             'Initial NetworkInformation API.',
             `- type: ${navigator.connection.type}`,
-            `- effectiveType: ${navigator.connection.effectiveType}`
+            `- effectiveType: ${navigator.connection.effectiveType}`,
+            `- downlink: ${navigator.connection.downlink}`
           );
         } else {
           this.log('NetworkInformation API is not supported.');
@@ -390,6 +506,7 @@
 
     const longPollingExperiment = new LongPollingExperiment();
     const serverSentEvents = new ServerSentEventsExperiment();
+    // const serviceBusExperiment = new ServiceBusExperiment();
     const webSocketExperiment = new WebSocketExperiment();
     const windowEventsExperiment = new WindowEventsExperiment();
   </script>
