@@ -1,11 +1,12 @@
 import 'dotenv/config';
 
+import cors from 'cors';
 import { createServer } from 'http';
 import { fileURLToPath } from 'url';
 import { resolve } from 'path';
 import { WebSocketServer } from 'ws';
 import express from 'express';
-import { createServer as createSocketServer } from 'net';
+// import { createServer as createSocketServer } from 'net';
 
 import generateServiceBusSharedAccessSignatureToken from './generateServiceBusSharedAccessSignatureToken.js';
 
@@ -19,13 +20,14 @@ const CORS_ALLOWED_UNTIL = new Date('2023-07-31');
 
 app.set('query parser', 'simple');
 
+new Date() < CORS_ALLOWED_UNTIL && app.use(cors());
+
 app.get('/health.txt', (_, res) => res.send('OK'));
 app.use('/api/poll', (req, res) => {
   const timeoutParam = parseInt(req.query.timeout, 10);
 
   res.chunkedEncoding = true;
   res.status(200);
-  new Date() < CORS_ALLOWED_UNTIL && res.setHeader('access-control-allow-origin', '*');
   res.setHeader('cache-control', 'no-store');
   res.write(' '); // iOS: Need to send at least 1 byte of data, otherwise, it won't signal as connected.
 
@@ -95,8 +97,8 @@ wss.on('connection', ws => {
 
 server.listen(PORT, () => console.log(`Listening to http://localhost:${PORT}/.`));
 
-createSocketServer(() => {
-  console.log('New socket connection.');
-}).listen(5002, () => {
-  console.log('Socket server opened on port 5002.');
-});
+// createSocketServer(() => {
+//   console.log('New socket connection.');
+// }).listen(5002, () => {
+//   console.log('Socket server opened on port 5002.');
+// });
