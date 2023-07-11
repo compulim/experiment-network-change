@@ -33,7 +33,7 @@ app.use('/api/poll', (req, res) => {
 
   const timeout = setTimeout(
     () => res.end(),
-    isNaN(timeoutParam) ? 30_000 : Math.max(0, Math.min(120_000, timeoutParam))
+    isNaN(timeoutParam) ? 30_000 : Math.max(0, Math.min(120, timeoutParam)) * 1_000
   );
 
   res.on('close', () => {
